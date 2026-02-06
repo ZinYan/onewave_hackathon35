@@ -13,6 +13,8 @@ from .ai_utils import generate_onboarding_reply
 from .models import (
     OnboardingEvent,
     OnboardingMessage,
+    OpportunityConfig,
+    OpportunityMatch,
     RoadmapItem,
     RoadmapJournalEntry,
     RoadmapPlan,
@@ -33,6 +35,17 @@ from .serializers import (
     RoadmapMetricsSerializer,
     RoadmapProgressUpdateSerializer,
     RoadmapJournalCreateSerializer,
+    OpportunityMatchSerializer,
+    OpportunityMatchActionSerializer,
+    OpportunityConfigSerializer,
+    OpportunityConfigUpdateSerializer,
+)
+from .opportunity_utils import (
+    approve_recommendation_item,
+    evaluate_opportunities_for_event,
+    get_opportunity_config,
+    invalidate_opportunity_config_cache,
+    reject_recommendation_item,
 )
 
 
@@ -454,6 +467,171 @@ class RoadmapJournalView(APIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
+class OpportunityMatchListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def get(self, request):
+        user = resolve_onboarding_user(request)
+        onboarding = getattr(user, "onboarding_event", None)
+        if onboarding is None:
+            return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        status_param = request.query_params.get("status")
+        matches = onboarding.opportunity_matches.select_related("opportunity", "inserted_item").order_by("-score", "-created_at")
+        if status_param:
+            matches = matches.filter(status=status_param)
+
+        payload = []
+        for match in matches:
+            item = match.inserted_item
+            payload.append(
+                {
+                    "id": match.id,
+                    "score": float(match.score),
+                    "status": match.status,
+                    "ai_feedback": match.ai_feedback,
+                    "created_at": match.created_at,
+                    "inserted_item": item.id if item else None,
+                    "recommendation_status": item.recommendation_status if item else None,
+                    "is_recommendation": bool(item.is_recommendation) if item else False,
+                    "opportunity": {
+                        "id": match.opportunity.id,
+                        "source": match.opportunity.source,
+                        "title": match.opportunity.title,
+                        "link": match.opportunity.link,
+                        "summary": match.opportunity.summary,
+                        "category": match.opportunity.category,
+                        "location": match.opportunity.location,
+                        "deadline": match.opportunity.deadline,
+                        "tags": match.opportunity.tags or [],
+                        "metadata": match.opportunity.metadata or {},
+                        "fetched_at": match.opportunity.fetched_at,
+                    },
+                }
+            )
+        data = OpportunityMatchSerializer(payload, many=True).data
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class OpportunityMatchRefreshView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def post(self, request):
+        user = resolve_onboarding_user(request)
+        onboarding = getattr(user, "onboarding_event", None)
+        if onboarding is None:
+            return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        created = evaluate_opportunities_for_event(onboarding)
+        return Response({"created": created}, status=status.HTTP_200_OK)
+
+
+class OpportunityMatchActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def post(self, request, match_id: int):
+        user = resolve_onboarding_user(request)
+        onboarding = getattr(user, "onboarding_event", None)
+        if onboarding is None:
+            return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OpportunityMatchActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        action = serializer.validated_data["action"]
+
+        match = get_object_or_404(
+            OpportunityMatch.objects.select_related("event", "opportunity"),
+            id=match_id,
+            event=onboarding,
+        )
+
+        if action == "accept":
+            item = approve_recommendation_item(match)
+            match.status = "accepted"
+            match.save(update_fields=["status"])
+            return Response(
+                {"status": match.status, "item_id": item.id if item else None},
+                status=status.HTTP_200_OK,
+            )
+
+        if action == "dismiss":
+            reject_recommendation_item(match)
+            match.status = "dismissed"
+            match.save(update_fields=["status"])
+            return Response({"status": match.status}, status=status.HTTP_200_OK)
+
+        if action == "inject":
+            item = approve_recommendation_item(match)
+            if not item:
+                return Response(
+                    {"detail": "로드맵이 아직 생성되지 않아 항목을 추가할 수 없습니다."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            match.status = "injected"
+            match.save(update_fields=["status"])
+            return Response({"status": match.status, "item_id": item.id}, status=status.HTTP_200_OK)
+
+        return Response({"detail": "Unsupported action."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OpportunityConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def get(self, request):
+        config = get_opportunity_config()
+        data = OpportunityConfigSerializer(config).data
+        return Response(data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        serializer = OpportunityConfigUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        defaults = {
+            "jobkorea_keywords": settings.OPPORTUNITY_JOBKOREA_KEYWORDS,
+            "dataportal_keywords": settings.OPPORTUNITY_DATAPORTAL_KEYWORDS,
+            "max_items_per_source": settings.OPPORTUNITY_MAX_ITEMS_PER_SOURCE,
+            "recent_days": settings.OPPORTUNITY_RECENT_DAYS,
+            "min_score": settings.OPPORTUNITY_MIN_SCORE,
+        }
+        config_obj, _ = OpportunityConfig.objects.get_or_create(id=1, defaults=defaults)
+
+        for field in [
+            "jobkorea_keywords",
+            "dataportal_keywords",
+            "max_items_per_source",
+            "recent_days",
+            "min_score",
+        ]:
+            if field in payload:
+                setattr(config_obj, field, payload[field])
+
+        config_obj.save()
+        invalidate_opportunity_config_cache()
+        data = OpportunityConfigSerializer(get_opportunity_config(force_refresh=True)).data
+        return Response(data, status=status.HTTP_200_OK)
+
+
 def build_roadmap_payload(plan: RoadmapPlan):
     items = list(
         plan.items.prefetch_related("progress_entries", "journal_entries")
@@ -470,21 +648,23 @@ def build_roadmap_payload(plan: RoadmapPlan):
     for item in items:
         latest_progress = item.progress_entries.first()
         progress_percent = latest_progress.percent_complete if latest_progress else 0
-        total_percent += progress_percent
-
+        include_in_metrics = item.recommendation_status in {"none", "approved"}
         importance_value = _decimal_to_float(item.importance_score)
-        importance = importance_value if importance_value is not None else 0.0
-        weighted_percent_sum += progress_percent * importance
-        importance_total += importance
-
         duration_value = _decimal_to_float(item.duration_weeks)
-        duration = duration_value if duration_value is not None else 0.0
-        weeks_total += duration
-        weeks_completed += duration * (progress_percent / 100.0)
 
-        if progress_percent >= 100 or (latest_progress and latest_progress.status == "done"):
-            completed_items += 1
+        if include_in_metrics:
+            total_percent += progress_percent
 
+            importance = importance_value if importance_value is not None else 0.0
+            weighted_percent_sum += progress_percent * importance
+            importance_total += importance
+
+            duration = duration_value if duration_value is not None else 0.0
+            weeks_total += duration
+            weeks_completed += duration * (progress_percent / 100.0)
+
+            if progress_percent >= 100 or (latest_progress and latest_progress.status == "done"):
+                completed_items += 1
         recent_journals = list(item.journal_entries.all()[:3])
 
         item_payloads.append(
@@ -496,12 +676,15 @@ def build_roadmap_payload(plan: RoadmapPlan):
                 "importance_score": importance_value,
                 "category": item.category,
                 "detail_text": item.detail_text,
+                "is_recommendation": item.is_recommendation,
+                "recommendation_status": item.recommendation_status,
+                "origin_opportunity": item.origin_opportunity_id,
                 "latest_progress": RoadmapProgressEntrySerializer(latest_progress).data if latest_progress else None,
                 "recent_journals": RoadmapJournalEntrySerializer(recent_journals, many=True).data,
             }
         )
 
-    total_items = len(items)
+    total_items = len([item for item in items if item.recommendation_status in {"none", "approved"}])
     overall_percent = (total_percent / total_items) if total_items else 0.0
     importance_weighted_percent = (
         (weighted_percent_sum / importance_total) if importance_total else overall_percent

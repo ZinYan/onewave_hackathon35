@@ -7,6 +7,10 @@ from .views import (
     RoadmapPlanView,
     RoadmapProgressUpdateView,
     RoadmapJournalView,
+    OpportunityMatchListView,
+    OpportunityMatchActionView,
+    OpportunityMatchRefreshView,
+    OpportunityConfigView,
 )
 
 urlpatterns = [
@@ -24,4 +28,16 @@ urlpatterns = [
         RoadmapJournalView.as_view(),
         name="roadmap-item-journal",
     ),
+    path("opportunities/matches/", OpportunityMatchListView.as_view(), name="opportunity-match-list"),
+    path(
+        "opportunities/matches/<int:match_id>/",
+        OpportunityMatchActionView.as_view(),
+        name="opportunity-match-action",
+    ),
+    path(
+        "opportunities/matches/refresh/",
+        OpportunityMatchRefreshView.as_view(),
+        name="opportunity-match-refresh",
+    ),
+    path("opportunities/config/", OpportunityConfigView.as_view(), name="opportunity-config"),
 ]

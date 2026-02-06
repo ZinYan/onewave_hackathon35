@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import RoadmapProgressEntry
+from .models import OpportunityMatch, RoadmapProgressEntry
 
 
 class OnboardingRequestSerializer(serializers.Serializer):
@@ -61,6 +61,9 @@ class RoadmapItemDetailSerializer(serializers.Serializer):
     importance_score = serializers.FloatField(allow_null=True)
     category = serializers.CharField(allow_blank=True)
     detail_text = serializers.CharField(allow_blank=True)
+    is_recommendation = serializers.BooleanField()
+    recommendation_status = serializers.CharField()
+    origin_opportunity = serializers.IntegerField(allow_null=True)
     latest_progress = RoadmapProgressEntrySerializer(allow_null=True)
     recent_journals = RoadmapJournalEntrySerializer(many=True)
 
@@ -92,3 +95,51 @@ class RoadmapProgressUpdateSerializer(serializers.Serializer):
 class RoadmapJournalCreateSerializer(serializers.Serializer):
     note = serializers.CharField()
     request_ai_evaluation = serializers.BooleanField(required=False, default=True)
+
+
+class OpportunitySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    source = serializers.CharField()
+    title = serializers.CharField()
+    link = serializers.URLField()
+    summary = serializers.CharField(allow_blank=True)
+    category = serializers.CharField(allow_blank=True)
+    location = serializers.CharField(allow_blank=True)
+    deadline = serializers.DateField(allow_null=True)
+    tags = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    metadata = serializers.DictField()
+    fetched_at = serializers.DateTimeField()
+
+
+class OpportunityMatchSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    score = serializers.FloatField()
+    status = serializers.ChoiceField(choices=[choice[0] for choice in OpportunityMatch.STATUS_CHOICES])
+    ai_feedback = serializers.CharField(allow_blank=True)
+    created_at = serializers.DateTimeField()
+    inserted_item = serializers.IntegerField(allow_null=True)
+    recommendation_status = serializers.CharField(allow_null=True, allow_blank=True)
+    is_recommendation = serializers.BooleanField()
+    opportunity = OpportunitySerializer()
+
+
+class OpportunityMatchActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["accept", "dismiss", "inject"])
+
+
+class OpportunityConfigSerializer(serializers.Serializer):
+    jobkorea_keywords = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    dataportal_keywords = serializers.ListField(child=serializers.CharField(), allow_empty=True)
+    max_items_per_source = serializers.IntegerField()
+    recent_days = serializers.IntegerField()
+    min_score = serializers.FloatField()
+    source = serializers.CharField()
+    updated_at = serializers.DateTimeField(allow_null=True)
+
+
+class OpportunityConfigUpdateSerializer(serializers.Serializer):
+    jobkorea_keywords = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
+    dataportal_keywords = serializers.ListField(child=serializers.CharField(), allow_empty=True, required=False)
+    max_items_per_source = serializers.IntegerField(min_value=1, required=False)
+    recent_days = serializers.IntegerField(min_value=1, required=False)
+    min_score = serializers.FloatField(min_value=0, required=False)

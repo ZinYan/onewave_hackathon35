@@ -152,6 +152,12 @@ def _to_float(value: str, default: float) -> float:
         return default
 
 
+def _to_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
 
 
 ONBOARDING_DEV_MODE = _to_bool(os.getenv("ONBOARDING_DEV_MODE"), default=False)
@@ -171,6 +177,17 @@ PROMPT_PROGRESS_EVAL = os.getenv(
     "PROMPT_PROGRESS_EVAL",
     "당신은 커리어 멘토로서 사용자의 진행 상황을 검토하고 개선 조언을 제공해라."
 )
+PROMPT_OPPORTUNITY_EVAL = os.getenv(
+    "PROMPT_OPPORTUNITY_EVAL",
+    "당신은 커리어 코치로서 신규 기회가 사용자 목표에 얼마나 맞는지 평가한다."
+)
+
+OPPORTUNITY_JOBKOREA_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_JOBKOREA_KEYWORDS", "데이터,AI"))
+OPPORTUNITY_DATAPORTAL_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_DATAPORTAL_KEYWORDS", "공모전"))
+OPPORTUNITY_MAX_ITEMS_PER_SOURCE = int(os.getenv("OPPORTUNITY_MAX_ITEMS_PER_SOURCE", "5"))
+OPPORTUNITY_RECENT_DAYS = int(os.getenv("OPPORTUNITY_RECENT_DAYS", "14"))
+OPPORTUNITY_MIN_SCORE = float(os.getenv("OPPORTUNITY_MIN_SCORE", "40"))
+OPPORTUNITY_DEFAULT_DURATION_WEEKS = _to_float(os.getenv("OPPORTUNITY_DEFAULT_DURATION_WEEKS"), default=2.0)
 
 GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
 GEMINI_TEMPERATURE = _to_float(os.getenv("GEMINI_TEMPERATURE"), default=0.4)
