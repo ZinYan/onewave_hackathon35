@@ -1,0 +1,105 @@
+.section {
+  width: 100%;
+  padding: 200px 32px 200px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+  box-sizing: border-box;
+  font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.title {
+  text-align: center;
+  color: #101828;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+}
+
+.stepsContainer {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.step {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.stepNumber {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.stepBlue {
+  background: #DBEAFE;
+  color: #155DFC;
+}
+
+.stepPurple {
+  background: #F3E8FF;
+  color: #9810FA;
+}
+
+.stepGreen {
+  background: #DCFCE7;
+  color: #00A63E;
+}
+
+.stepOrange {
+  background: #FFEDD4;
+  color: #F54900;
+}
+
+.stepTitle {
+  margin: 0;
+  color: #101828;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.stepDescription {
+  margin: 0;
+  color: #4A5565;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 48px 24px;
+    gap: 32px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .stepsContainer {
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .step {
+    width: 100%;
+    max-width: 280px;
+  }
+}

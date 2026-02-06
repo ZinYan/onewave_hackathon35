@@ -16,9 +16,6 @@ const Header = () => {
           <div className={styles.link}>Pricing</div>
         </div>
         <div className={styles.actions}>
-          <div className={styles.button}>
-            <div className={styles.login}>Login</div>
-          </div>
           <div className={styles.button2}>
             <div className={styles.login}>Get started</div>
           </div>
