@@ -10,6 +10,8 @@ from .views import (
     OpportunityMatchListView,
     OpportunityMatchActionView,
     OpportunityMatchRefreshView,
+    OpportunityMatchPrioritizeView,
+    OpportunityMatchArchiveExpiredView,
     OpportunityConfigView,
 )
 
@@ -38,6 +40,16 @@ urlpatterns = [
         "opportunities/matches/refresh/",
         OpportunityMatchRefreshView.as_view(),
         name="opportunity-match-refresh",
+    ),
+    path(
+        "opportunities/matches/prioritize/",
+        OpportunityMatchPrioritizeView.as_view(),
+        name="opportunity-match-prioritize",
+    ),
+    path(
+        "opportunities/matches/archive-expired/",
+        OpportunityMatchArchiveExpiredView.as_view(),
+        name="opportunity-match-archive",
     ),
     path("opportunities/config/", OpportunityConfigView.as_view(), name="opportunity-config"),
 ]

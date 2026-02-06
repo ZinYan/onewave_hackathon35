@@ -42,6 +42,8 @@ from .serializers import (
 )
 from .opportunity_utils import (
     approve_recommendation_item,
+    apply_ai_prioritization,
+    archive_expired_recommendations,
     evaluate_opportunities_for_event,
     get_opportunity_config,
     invalidate_opportunity_config_cache,
@@ -482,7 +484,10 @@ class OpportunityMatchListView(APIView):
             return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
 
         status_param = request.query_params.get("status")
-        matches = onboarding.opportunity_matches.select_related("opportunity", "inserted_item").order_by("-score", "-created_at")
+        matches = (
+            onboarding.opportunity_matches.select_related("opportunity", "inserted_item")
+            .order_by("-priority_score", "-score", "-created_at")
+        )
         if status_param:
             matches = matches.filter(status=status_param)
 
@@ -493,6 +498,7 @@ class OpportunityMatchListView(APIView):
                 {
                     "id": match.id,
                     "score": float(match.score),
+                    "priority_score": float(match.priority_score),
                     "status": match.status,
                     "ai_feedback": match.ai_feedback,
                     "created_at": match.created_at,
@@ -533,7 +539,12 @@ class OpportunityMatchRefreshView(APIView):
             return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
 
         created = evaluate_opportunities_for_event(onboarding)
-        return Response({"created": created}, status=status.HTTP_200_OK)
+        archived = archive_expired_recommendations(onboarding)
+        updated = apply_ai_prioritization(onboarding)
+        return Response(
+            {"created": created, "archived": archived, "prioritized": updated},
+            status=status.HTTP_200_OK,
+        )
 
 
 class OpportunityMatchActionView(APIView):
@@ -587,6 +598,42 @@ class OpportunityMatchActionView(APIView):
             return Response({"status": match.status, "item_id": item.id}, status=status.HTTP_200_OK)
 
         return Response({"detail": "Unsupported action."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OpportunityMatchPrioritizeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def post(self, request):
+        user = resolve_onboarding_user(request)
+        onboarding = getattr(user, "onboarding_event", None)
+        if onboarding is None:
+            return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        updated = apply_ai_prioritization(onboarding)
+        return Response({"updated": updated}, status=status.HTTP_200_OK)
+
+
+class OpportunityMatchArchiveExpiredView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if settings.ONBOARDING_DEV_MODE:
+            return []
+        return super().get_permissions()
+
+    def post(self, request):
+        user = resolve_onboarding_user(request)
+        onboarding = getattr(user, "onboarding_event", None)
+        if onboarding is None:
+            return Response({"detail": "Onboarding session not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        archived = archive_expired_recommendations(onboarding)
+        return Response({"archived": archived}, status=status.HTTP_200_OK)
 
 
 class OpportunityConfigView(APIView):

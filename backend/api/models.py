@@ -192,6 +192,7 @@ class OpportunityMatch(models.Model):
         related_name="matches",
     )
     score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    priority_score = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     ai_feedback = models.TextField(blank=True, default="")
     inserted_item = models.ForeignKey(
@@ -205,7 +206,7 @@ class OpportunityMatch(models.Model):
 
     class Meta:
         unique_together = ("event", "opportunity")
-        ordering = ["-score", "-created_at"]
+        ordering = ["-priority_score", "-score", "-created_at"]
 
 
 class OpportunityConfig(models.Model):

@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -281,14 +282,15 @@ def evaluate_opportunities_for_event(event: OnboardingEvent) -> int:
         match, created = OpportunityMatch.objects.get_or_create(
             event=event,
             opportunity=opportunity,
-            defaults={"score": score, "ai_feedback": feedback},
+            defaults={"score": score, "ai_feedback": feedback, "priority_score": score},
         )
         if created:
             matches_created += 1
         elif match.status == "pending":
             match.score = score
             match.ai_feedback = feedback
-            match.save(update_fields=["score", "ai_feedback"])
+            match.priority_score = score
+            match.save(update_fields=["score", "ai_feedback", "priority_score"])
 
         ensure_recommendation_item(match, details)
 
@@ -345,7 +347,17 @@ def generate_opportunity_feedback(event: OnboardingEvent, opportunity: Opportuni
 def run_opportunity_pipeline() -> dict:
     fetched = refresh_opportunities_from_sources()
     matched = evaluate_opportunities_for_all_events()
-    return {"fetched": fetched, "matched": matched}
+    archived = 0
+    reprioritized = 0
+    for event in OnboardingEvent.objects.select_related("user").all():
+        archived += archive_expired_recommendations(event)
+        reprioritized += apply_ai_prioritization(event)
+    return {
+        "fetched": fetched,
+        "matched": matched,
+        "archived": archived,
+        "reprioritized": reprioritized,
+    }
 
 
 def _safe_get_html(url: str) -> str:
@@ -679,3 +691,129 @@ def rebalance_plan_schedule(plan: RoadmapPlan):
         item.end_date = end
         item.save(update_fields=["start_date", "end_date"])
         current_date = end + datetime.timedelta(days=1)
+
+
+def archive_expired_recommendations(event: OnboardingEvent) -> int:
+    today = timezone.now().date()
+    matches = event.opportunity_matches.filter(
+        opportunity__deadline__lt=today,
+        status__in=["pending", "accepted", "injected"],
+    )
+    archived = 0
+    for match in matches:
+        reject_recommendation_item(match)
+        match.status = "dismissed"
+        match.save(update_fields=["status"])
+        archived += 1
+    return archived
+
+
+def apply_ai_prioritization(event: OnboardingEvent) -> int:
+    template = (settings.PROMPT_RECOMMENDATION_PRIORITIZATION or "").strip()
+    if not template:
+        return 0
+
+    pending_matches = list(
+        event.opportunity_matches.filter(status="pending")
+        .select_related("opportunity")
+        .order_by("-priority_score", "-score")[:10]
+    )
+    if not pending_matches:
+        return 0
+
+    plan = event.roadmap_plans.order_by("-version").first()
+    context_payload = [
+        {
+            "match_id": match.id,
+            "title": match.opportunity.title,
+            "deadline": match.opportunity.deadline.isoformat() if match.opportunity.deadline else None,
+            "score": float(match.score),
+            "category": match.opportunity.category,
+            "ai_feedback": match.ai_feedback,
+        }
+        for match in pending_matches
+    ]
+
+    prompt = _render_priority_prompt(event, plan, context_payload, template)
+    try:
+        ai_message, _ = generate_onboarding_reply(
+            history=[],
+            summary="",
+            system_prompt="너는 JSON만 반환해야 한다.",
+            user_input=prompt,
+        )
+    except Exception:
+        return 0
+
+    priorities = _parse_priority_response(ai_message)
+    if not priorities:
+        return 0
+
+    updated = 0
+    for match in pending_matches:
+        if match.id not in priorities:
+            continue
+        match.priority_score = priorities[match.id]
+        match.save(update_fields=["priority_score"])
+        updated += 1
+    return updated
+
+
+def _render_priority_prompt(event: OnboardingEvent, plan: RoadmapPlan | None, payload: list, template: str) -> str:
+    roadmap_summary = _summarize_plan(plan)
+    profile = {
+        "target_company": event.final_company or "미정",
+        "target_role": event.final_role or "미정",
+    }
+    return template.format(
+        profile=json.dumps(profile, ensure_ascii=False),
+        roadmap_summary=roadmap_summary,
+        opportunities=json.dumps(payload, ensure_ascii=False),
+    )
+
+
+def _parse_priority_response(ai_message: str) -> dict[int, float]:
+    if not ai_message:
+        return {}
+
+    text = _extract_json_block(ai_message)
+    if not text:
+        return {}
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+
+    mapping = {}
+    if isinstance(data, dict):
+        data = [data]
+
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        match_id = entry.get("match_id")
+        priority = entry.get("priority")
+        confidence = entry.get("confidence", 0.0)
+        if not isinstance(match_id, int) or not isinstance(priority, (int, float)):
+            continue
+        priority_score = _calculate_priority_score(priority, confidence)
+        mapping[match_id] = priority_score
+    return mapping
+
+
+def _extract_json_block(value: str) -> str | None:
+    fenced = re.search(r"```json(.*?)```", value, re.DOTALL | re.IGNORECASE)
+    if fenced:
+        return fenced.group(1).strip()
+    trimmed = value.strip()
+    if trimmed.startswith("[") or trimmed.startswith("{"):
+        return trimmed
+    return None
+
+
+def _calculate_priority_score(priority: float, confidence: float) -> float:
+    priority = max(1.0, float(priority))
+    confidence = max(0.0, min(1.0, float(confidence)))
+    base = 200.0 - (priority - 1.0) * 20.0
+    return round(base + (confidence * 10.0), 2)

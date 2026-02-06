@@ -181,6 +181,13 @@ PROMPT_OPPORTUNITY_EVAL = os.getenv(
     "PROMPT_OPPORTUNITY_EVAL",
     "당신은 커리어 코치로서 신규 기회가 사용자 목표에 얼마나 맞는지 평가한다."
 )
+PROMPT_RECOMMENDATION_PRIORITIZATION = os.getenv(
+    "PROMPT_RECOMMENDATION_PRIORITIZATION",
+    (
+        "사용자 목표와 일정 상태를 고려해 추천 기회 우선순위를 재조정한다. "
+        "JSON 배열 형태로 match_id와 priority(1이 가장 높음), confidence(0-1)를 반환해라."
+    ),
+)
 
 OPPORTUNITY_JOBKOREA_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_JOBKOREA_KEYWORDS", "데이터,AI"))
 OPPORTUNITY_DATAPORTAL_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_DATAPORTAL_KEYWORDS", "공모전"))
@@ -188,6 +195,8 @@ OPPORTUNITY_MAX_ITEMS_PER_SOURCE = int(os.getenv("OPPORTUNITY_MAX_ITEMS_PER_SOUR
 OPPORTUNITY_RECENT_DAYS = int(os.getenv("OPPORTUNITY_RECENT_DAYS", "14"))
 OPPORTUNITY_MIN_SCORE = float(os.getenv("OPPORTUNITY_MIN_SCORE", "40"))
 OPPORTUNITY_DEFAULT_DURATION_WEEKS = _to_float(os.getenv("OPPORTUNITY_DEFAULT_DURATION_WEEKS"), default=2.0)
+OPPORTUNITY_SCHEDULER_ENABLED = _to_bool(os.getenv("OPPORTUNITY_SCHEDULER_ENABLED"), default=False)
+OPPORTUNITY_SCHEDULER_INTERVAL_MINUTES = int(os.getenv("OPPORTUNITY_SCHEDULER_INTERVAL_MINUTES", "720"))
 
 GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
 GEMINI_TEMPERATURE = _to_float(os.getenv("GEMINI_TEMPERATURE"), default=0.4)

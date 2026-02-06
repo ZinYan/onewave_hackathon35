@@ -114,6 +114,7 @@ class OpportunitySerializer(serializers.Serializer):
 class OpportunityMatchSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     score = serializers.FloatField()
+    priority_score = serializers.FloatField()
     status = serializers.ChoiceField(choices=[choice[0] for choice in OpportunityMatch.STATUS_CHOICES])
     ai_feedback = serializers.CharField(allow_blank=True)
     created_at = serializers.DateTimeField()
