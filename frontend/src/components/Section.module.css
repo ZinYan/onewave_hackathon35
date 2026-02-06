@@ -1,0 +1,115 @@
+
+.section {
+  max-width: 900px;
+  margin: 80px auto 96px auto;
+  padding: 0 24px 64px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.heading1 {
+  font-size: 44px;
+  line-height: 1.1;
+}
+
+.yourCareerMapped {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.descriptionWrapper {
+  max-width: 520px;
+}
+
+.buildAPersonalized {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #6b7280;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+
+.button:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.35);
+}
+
+.getStarted {
+  white-space: nowrap;
+}
+
+.overlayshadow {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.previewCard {
+  width: 100%;
+  max-width: 720px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 32px 70px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.previewHeader {
+  display: none;
+}
+
+.previewTitle {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.previewBody {
+  padding: 0;
+}
+
+.previewChartPlaceholder {
+  height: 420px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url("https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1400&q=80");
+}
+
+@media (max-width: 900px) {
+  .section {
+    margin: 56px auto 72px auto;
+  }
+
+  .heading1 {
+    font-size: 32px;
+  }
+}
