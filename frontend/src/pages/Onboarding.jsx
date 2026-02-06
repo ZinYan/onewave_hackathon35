@@ -9,9 +9,15 @@ export default function Onboarding() {
     <>
       <Header />
       <Section1 />
-      <Section2 />
-      <Section3 />
-      <Section4 />
+      <div id="features">
+        <Section2 />
+      </div>
+      <div id="how-it-works">
+        <Section3 />
+      </div>
+      <div id="pricing">
+        <Section4 />
+      </div>
     </>
   );
 }

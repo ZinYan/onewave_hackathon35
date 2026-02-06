@@ -4,6 +4,13 @@ import styles from "./Header.module.css";
 const Header = () => {
   const navigate = useNavigate();
 
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <div className={styles.header}>
       <div className={styles.container}>
@@ -14,9 +21,9 @@ const Header = () => {
           </div>
         </div>
         <div className={styles.nav}>
-          <div className={styles.link}>Features</div>
-          <div className={styles.link}>How it works</div>
-          <div className={styles.link}>Pricing</div>
+          <div className={styles.link} onClick={() => scrollToSection("features")} style={{ cursor: "pointer" }}>Features</div>
+          <div className={styles.link} onClick={() => scrollToSection("how-it-works")} style={{ cursor: "pointer" }}>How it works</div>
+          <div className={styles.link} onClick={() => scrollToSection("pricing")} style={{ cursor: "pointer" }}>Pricing</div>
         </div>
         <div className={styles.actions}>
           <div className={styles.button2}>

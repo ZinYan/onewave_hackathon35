@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Header2 from "../components/Header2";
+import { Target, FileText, Briefcase, Users, Mic, Rocket, Trophy, Lock } from "lucide-react";
 
 // Styles
 const styles = {
@@ -150,14 +151,14 @@ const styles = {
     background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)",
     boxShadow: "0px 2px 8px rgba(255, 105, 0, 0.15)",
     borderRadius: 20,
-    border: "1px solid #FDBA74",
+    border: "1px solid #ffffff",
     justifyContent: "flex-start",
     alignItems: "center",
     gap: 10,
     display: "flex"
   },
   streakIcon: { color: "#FF6900", fontSize: 24 },
-  streakText: { color: "#4B4B4B", fontSize: 20, fontWeight: "900", lineHeight: "28px" },
+  streakText: { color: "#4B4B4B", fontSize: 20, fontWeight: "600", lineHeight: "28px" },
   roadmapArea: {
     alignSelf: "stretch",
     flex: 1,
@@ -179,10 +180,16 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     display: "flex",
-    boxShadow: "0px 8px 10px -6px rgba(0, 0, 0, 0.10), 0px 20px 25px -5px rgba(0, 0, 0, 0.10)",
-    border: "4px solid white",
     cursor: "pointer",
-    transition: "transform 0.2s"
+    transition: "transform 0.2s, box-shadow 0.3s"
+  },
+  nodeInner: {
+    borderRadius: 9999,
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
   },
   nodeEmoji: {
     fontSize: 30,
@@ -243,14 +250,14 @@ const styles = {
   controlText: { color: "#1D293D", fontSize: 16, fontWeight: "500", lineHeight: "24px" }
 };
 
-// Node data
+// Node data with lucide icons
 const nodes = [
-  { id: 1, emoji: "🎯", x: 25, y: 195, size: 50, bg: "linear-gradient(135deg, #00D492 0%, #009966 100%)", completed: true, title: "목표 설정", desc: "커리어 목표와 방향성을 설정하는 단계입니다." },
-  { id: 2, emoji: "📝", x: 175, y: 195, size: 50, bg: "linear-gradient(135deg, #5EE9B5 0%, #00BC7D 100%)", completed: true, title: "자기 분석", desc: "나의 강점과 약점을 분석하고 개선점을 파악합니다." },
-  { id: 3, emoji: "💼", x: 310, y: 180, size: 90, bg: "linear-gradient(135deg, #00A6F4 0%, #00D492 50%, #615FFF 100%)", current: true, title: "역량 개발", desc: "직무에 필요한 핵심 역량을 개발하고 실전 경험을 쌓게 됩니다." },
-  { id: 4, emoji: "🤝", x: 485, y: 195, size: 50, bg: "linear-gradient(135deg, #DFF2FE 0%, #D0FAE5 100%)", locked: true, title: "네트워킹", desc: "업계 전문가들과 네트워크를 형성합니다." },
-  { id: 5, emoji: "🎤", x: 635, y: 195, size: 50, bg: "linear-gradient(135deg, #DFF2FE 0%, #E0E7FF 100%)", locked: true, title: "면접 준비", desc: "실전 면접을 대비한 준비를 진행합니다." },
-  { id: 6, emoji: "🚀", x: 785, y: 195, size: 50, bg: "linear-gradient(135deg, #D0FAE5 0%, #E0E7FF 100%)", locked: true, title: "지원 및 도전", desc: "원하는 기업에 지원하고 도전합니다." },
+  { id: 1, icon: Target, x: 25, y: 195, size: 50, bg: "linear-gradient(135deg, #10B981 0%, #059669 100%)", completed: true, title: "목표 설정", desc: "커리어 목표와 방향성을 설정하는 단계입니다." },
+  { id: 2, icon: FileText, x: 175, y: 195, size: 50, bg: "linear-gradient(135deg, #34D399 0%, #10B981 100%)", completed: true, title: "자기 분석", desc: "나의 강점과 약점을 분석하고 개선점을 파악합니다." },
+  { id: 3, icon: Briefcase, x: 310, y: 180, size: 90, bg: "linear-gradient(135deg, #00A6F4 0%, #00D492 50%, #615FFF 100%)", current: true, title: "역량 개발", desc: "직무에 필요한 핵심 역량을 개발하고 실전 경험을 쌓게 됩니다." },
+  { id: 4, icon: Users, x: 485, y: 195, size: 50, bg: "linear-gradient(135deg, #DFF2FE 0%, #D0FAE5 100%)", locked: true, title: "네트워킹", desc: "업계 전문가들과 네트워크를 형성합니다." },
+  { id: 5, icon: Mic, x: 635, y: 195, size: 50, bg: "linear-gradient(135deg, #DFF2FE 0%, #E0E7FF 100%)", locked: true, title: "면접 준비", desc: "실전 면접을 대비한 준비를 진행합니다." },
+  { id: 6, icon: Rocket, x: 785, y: 195, size: 50, bg: "linear-gradient(135deg, #D0FAE5 0%, #E0E7FF 100%)", locked: true, title: "지원 및 도전", desc: "원하는 기업에 지원하고 도전합니다." },
   { id: 7, emoji: "🏆", x: 890, y: 165, size: 110, bg: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)", locked: true, final: true, title: "목표 달성", desc: "축하합니다! 커리어 목표를 달성했습니다!" }
 ];
 
@@ -361,7 +368,43 @@ export default function Roadmap() {
             <div style={styles.pathLine} />
 
           {/* Nodes */}
-          {nodes.map((node) => (
+          {nodes.map((node) => {
+            // 노드 타입별 스타일 결정
+            const getNodeStyle = () => {
+              if (node.completed) {
+                // 완료된 노드: 초록 그라데이션 + 흰 테두리
+                return {
+                  background: node.bg,
+                  border: "4px solid rgba(255,255,255,0.8)",
+                  boxShadow: "0 4px 20px rgba(0, 212, 146, 0.3)"
+                };
+              } else if (node.current) {
+                // 현재 노드: 그라데이션 테두리 + 보라색 글로우
+                return {
+                  background: "linear-gradient(135deg, #5EE9B5, #00A6F4, #615FFF) padding-box, linear-gradient(135deg, #5EE9B5, #00A6F4, #615FFF) border-box",
+                  border: "5px solid transparent",
+                  boxShadow: "0 0 40px rgba(97, 95, 255, 0.6), 0 0 80px rgba(97, 95, 255, 0.3), inset 0 0 20px rgba(255,255,255,0.2)"
+                };
+              } else if (node.final) {
+                // 최종 노드: 골드 테두리
+                return {
+                  background: "linear-gradient(145deg, #FFF8E7, #FFF5DB)",
+                  border: "4px solid #6EE7B7",
+                  boxShadow: "0 4px 20px rgba(110, 231, 183, 0.3)"
+                };
+              } else {
+                // 잠긴 노드: 민트색 테두리 + 연한 내부
+                return {
+                  background: "linear-gradient(145deg, #F8FDFC, #F0FDF9)",
+                  border: "3px solid #6EE7B7",
+                  boxShadow: "0 4px 15px rgba(110, 231, 183, 0.2)"
+                };
+              }
+            };
+
+            const nodeStyle = getNodeStyle();
+
+            return (
             <div key={node.id}>
               <div
                 data-clickable
@@ -371,18 +414,36 @@ export default function Roadmap() {
                   top: node.y,
                   width: node.size || 70,
                   height: node.size || 70,
-                  background: node.bg,
-                  opacity: node.locked ? 0.9 : 1
+                  ...nodeStyle,
+                  opacity: node.locked && !node.final ? 0.95 : 1
                 }}
                 onClick={() => setSelectedNode(prev => prev === node.id ? null : node.id)}
               >
-                <span style={{ ...styles.nodeEmoji, fontSize: node.final ? 60 : 30 }}>{node.emoji}</span>
+                {node.final ? (
+                  <span style={{ fontSize: 56 }}>{node.emoji}</span>
+                ) : (
+                  <node.icon 
+                    size={node.current ? 40 : 24}
+                    strokeWidth={node.current ? 2.5 : 2}
+                    color={node.completed ? "#fff" : (node.current ? "#fff" : (node.locked ? "#64748B" : "#fff"))}
+                    style={{
+                      filter: node.locked && !node.final ? "opacity(0.7)" : "none"
+                    }}
+                  />
+                )}
               </div>
               
               {/* Lock badge for locked nodes */}
               {node.locked && (
-                <div style={{ ...styles.nodeBadge, left: node.x + (node.size || 70) - 16, top: node.y - 8, width: 28, height: 28 }}>
-                  🔒
+                <div style={{ 
+                  ...styles.nodeBadge, 
+                  left: node.x + (node.size || 70) - (node.final ? 20 : 16), 
+                  top: node.y - (node.final ? 4 : 8), 
+                  width: node.final ? 34 : 28, 
+                  height: node.final ? 34 : 28,
+                  background: node.final ? "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)" : "#00A6F4"
+                }}>
+                  <Lock size={node.final ? 18 : 14} color="#fff" strokeWidth={2.5} />
                 </div>
               )}
 
@@ -400,7 +461,7 @@ export default function Roadmap() {
                 </div>
               )}
             </div>
-          ))}
+          )})}
           </div>
 
           {/* Controls - 줌 영역 밖에 위치 */}
