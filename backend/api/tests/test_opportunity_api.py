@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -9,6 +10,15 @@ from rest_framework.test import APIClient
 from api.models import OnboardingEvent, Opportunity, OpportunityConfig, OpportunityMatch
 
 
+def log_api_response(label: str, response):
+    payload = getattr(response, "data", response)
+    try:
+        serialized = json.dumps(payload, ensure_ascii=False, default=str)
+    except TypeError:
+        serialized = str(payload)
+    print(f"[API TEST OUTPUT] {label}: {serialized}")
+
+
 @override_settings(ONBOARDING_DEV_MODE=True)
 class OpportunityConfigViewTests(TestCase):
     def setUp(self):
@@ -16,6 +26,7 @@ class OpportunityConfigViewTests(TestCase):
 
     def test_get_returns_default_structure(self):
         response = self.client.get(reverse("opportunity-config"))
+        log_api_response("GET /api/opportunities/config/", response)
         self.assertEqual(response.status_code, 200)
         data = response.data
         for field in [
@@ -37,6 +48,7 @@ class OpportunityConfigViewTests(TestCase):
             "min_score": 55.5,
         }
         response = self.client.put(reverse("opportunity-config"), data=payload, format="json")
+        log_api_response("PUT /api/opportunities/config/", response)
         self.assertEqual(response.status_code, 200)
         config = OpportunityConfig.objects.get(id=1)
         self.assertEqual(config.max_items_per_source, 3)
@@ -70,6 +82,7 @@ class OpportunityMatchViewsTests(TestCase):
         mock_approve.return_value = SimpleNamespace(id=99)
         url = reverse("opportunity-match-action", args=[self.match.id])
         response = self.client.post(url, data={"action": "accept"}, format="json")
+        log_api_response(f"POST {url} action=accept", response)
         self.assertEqual(response.status_code, 200)
         self.match.refresh_from_db()
         self.assertEqual(self.match.status, "accepted")
@@ -79,6 +92,7 @@ class OpportunityMatchViewsTests(TestCase):
     def test_dismiss_action_marks_match(self, mock_reject):
         url = reverse("opportunity-match-action", args=[self.match.id])
         response = self.client.post(url, data={"action": "dismiss"}, format="json")
+        log_api_response(f"POST {url} action=dismiss", response)
         self.assertEqual(response.status_code, 200)
         self.match.refresh_from_db()
         self.assertEqual(self.match.status, "dismissed")
@@ -90,6 +104,7 @@ class OpportunityMatchViewsTests(TestCase):
     def test_refresh_endpoint_runs_pipeline(self, mock_eval, mock_archive, mock_prioritize):
         url = reverse("opportunity-match-refresh")
         response = self.client.post(url)
+        log_api_response("POST /api/opportunities/matches/refresh/", response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"created": 3, "archived": 2, "prioritized": 5})
         mock_eval.assert_called_once_with(self.event)
@@ -100,6 +115,7 @@ class OpportunityMatchViewsTests(TestCase):
     def test_prioritize_endpoint_returns_count(self, mock_prioritize):
         url = reverse("opportunity-match-prioritize")
         response = self.client.post(url)
+        log_api_response("POST /api/opportunities/matches/prioritize/", response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"updated": 4})
         mock_prioritize.assert_called_once_with(self.event)
@@ -108,6 +124,7 @@ class OpportunityMatchViewsTests(TestCase):
     def test_archive_endpoint_returns_count(self, mock_archive):
         url = reverse("opportunity-match-archive")
         response = self.client.post(url)
+        log_api_response("POST /api/opportunities/matches/archive-expired/", response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"archived": 1})
         mock_archive.assert_called_once_with(self.event)
