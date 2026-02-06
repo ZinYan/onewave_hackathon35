@@ -8,6 +8,7 @@ import Onboarding from "./pages/Onboarding";
 import Next from "./pages/Next";
 import Score from "./pages/Score";
 import Loading from "./pages/Loading";
+import Roadmap from "./pages/Roadmap";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -20,6 +21,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/next" element={<Next />} />
         <Route path="/score" element={<Score />} />
         <Route path="/loading" element={<Loading />} />
+        <Route path="/roadmap" element={<Roadmap />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

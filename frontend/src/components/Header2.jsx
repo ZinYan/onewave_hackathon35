@@ -5,8 +5,8 @@ const Header2 = () => {
   const navigate = useNavigate();
 
   return (
-    <div className={styles.header}>
-      <div className={styles.container} style={{ display: "flex", justifyContent: "space-between" }}>
+    <div className={styles.header} style={{ background: "transparent", border: "none", borderBottom: "none" }}>
+      <div className={styles.container} style={{ display: "flex", justifyContent: "flex-start" }}>
         <div className={styles.container2} onClick={() => navigate("/onboarding")} style={{ cursor: "pointer" }}>
           <div className={styles.container3}>A</div>
           <div className={styles.container4}>
