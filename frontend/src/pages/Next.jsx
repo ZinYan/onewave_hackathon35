@@ -100,6 +100,37 @@ const styles = {
 
 export default function Next() {
   const [interest, setInterest] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleNext = async () => {
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const devMode = window.ONBOARDING_DEV_MODE === true;
+      const token = localStorage.getItem("jwt");
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      if (!devMode && token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch("/api/users/me/onboarding/", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ user_input: interest })
+      });
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      setError("AI 응답을 받지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -132,17 +163,40 @@ export default function Next() {
                 onChange={(e) => setInterest(e.target.value)}
                 placeholder="e.g., Technology, Design, Business, Healthcare..."
                 style={styles.input}
+                disabled={loading}
               />
             </div>
             <div style={styles.cardHint}>Type any field that excites you. We'll match it with suitable roles.</div>
           </div>
 
           <div style={styles.buttonWrapper}>
-            <button style={styles.button}>
-              <span style={styles.buttonText}>Next Step</span>
+            <button style={styles.button} onClick={handleNext} disabled={loading || !interest}>
+              <span style={styles.buttonText}>{loading ? "Loading..." : "Next Step"}</span>
               <span style={styles.buttonArrow}>→</span>
             </button>
           </div>
+
+          {error && (
+            <div style={{ color: "#C70036", marginTop: 12 }}>{error}</div>
+          )}
+          {result && (
+            <div style={{ marginTop: 24, padding: 16, background: "#F3F4F6", borderRadius: 8 }}>
+              <div style={{ fontWeight: "600", marginBottom: 8 }}>AI Reply:</div>
+              <div style={{ marginBottom: 8 }}>{result.message}</div>
+              {result.final_company && (
+                <div>최종 회사: <b>{result.final_company}</b></div>
+              )}
+              {result.final_role && (
+                <div>최종 직무: <b>{result.final_role}</b></div>
+              )}
+              {result.roadmap_result && (
+                <div style={{ marginTop: 8 }}>로드맵 결과: <pre style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{result.roadmap_result}</pre></div>
+              )}
+              {result.score && (
+                <div style={{ marginTop: 8 }}>Score: <b>{result.score}</b></div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

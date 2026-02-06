@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Header2 from "../components/Header2";
 
 // Styles
@@ -229,76 +230,188 @@ const styles = {
     fontSize: 14,
     fontWeight: "400",
     lineHeight: "20px"
+  },
+  loading: {
+    textAlign: "center",
+    color: "#6A7282",
+    fontSize: 16,
+    padding: "40px 0"
+  },
+  error: {
+    textAlign: "center",
+    color: "#DC2626",
+    fontSize: 16,
+    padding: "40px 0"
   }
 };
 
 export default function Score() {
   const navigate = useNavigate();
-  const score = 40; // TODO: 실제 점수로 교체
-  const jobTitle = "Product Manager"; // TODO: 실제 직업으로 교체
+  const [score, setScore] = useState(null);
+  const [jobTitle, setJobTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // API에서 점수 데이터 가져오기
+    const fetchScore = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Phase 2-1: 기업 인재상 생성 (백엔드에서 자동 처리)
+        const phase1Response = await fetch('/api/onboarding/score/1/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!phase1Response.ok) {
+          throw new Error('Failed to generate company profile');
+        }
+
+        // Phase 2-2: 백엔드에서 계산된 점수 가져오기
+        const phase2Response = await fetch('/api/onboarding/score/2/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!phase2Response.ok) {
+          throw new Error('Failed to fetch score');
+        }
+
+        const data = await phase2Response.json();
+        
+        // API 응답에서 점수와 직업 정보 설정
+        setScore(data.score || 0);
+        setJobTitle(data.job_title || "Product Manager");
+        
+      } catch (err) {
+        console.error('Error fetching score:', err);
+        setError(err.message);
+        // 에러 발생 시 기본값 사용
+        setScore(40);
+        setJobTitle("Product Manager");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchScore();
+  }, []);
+
+  // 점수에 따른 설명 메시지 생성
+  const getScoreDescription = (score) => {
+    if (score >= 80) {
+      return "Excellent! You're well-prepared for this role.\nKeep building on your strong foundation.";
+    } else if (score >= 60) {
+      return "Great start! You have a solid foundation to build\nupon. Let's create a personalized plan to reach\nyour career goals.";
+    } else if (score >= 40) {
+      return "Good beginning! There's room to grow.\nLet's identify key areas to focus on for your\ncareer development.";
+    } else {
+      return "Starting your journey! We'll create a clear path\nto help you build the skills needed for your\ntarget role.";
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.page}>
+        <Header2 />
+        <div style={styles.container}>
+          <div style={styles.loading}>Loading your score...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && score === null) {
+    return (
+      <div style={styles.page}>
+        <Header2 />
+        <div style={styles.container}>
+          <div style={styles.error}>
+            Error loading score. Please try again.
+            <br />
+            <button 
+              style={{ ...styles.button, marginTop: 20, width: 'auto' }}
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>
       <Header2 />
       <div style={styles.container}>
         <div style={styles.card}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div style={styles.titleWrapper}>
-            <div style={styles.title}>Score Result</div>
-          </div>
-          <div style={styles.subtitleWrapper}>
-            <div style={styles.subtitleText}>
-              <span style={styles.subtitleNormal}>Your score for </span>
-              <span style={styles.subtitleBold}>{jobTitle}</span>
-              <span style={styles.subtitleNormal}> is</span>
+          {/* Header */}
+          <div style={styles.header}>
+            <div style={styles.titleWrapper}>
+              <div style={styles.title}>Score Result</div>
+            </div>
+            <div style={styles.subtitleWrapper}>
+              <div style={styles.subtitleText}>
+                <span style={styles.subtitleNormal}>Your score for </span>
+                <span style={styles.subtitleBold}>{jobTitle}</span>
+                <span style={styles.subtitleNormal}> is</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Score */}
-        <div style={styles.scoreSection}>
-          <div style={styles.scoreWrapper}>
-            <div style={styles.scoreNumber}>{score}</div>
+          {/* Score */}
+          <div style={styles.scoreSection}>
+            <div style={styles.scoreWrapper}>
+              <div style={styles.scoreNumber}>{score}</div>
+            </div>
+            <div style={styles.scoreWrapper}>
+              <div style={styles.scoreLabel}>points</div>
+            </div>
           </div>
-          <div style={styles.scoreWrapper}>
-            <div style={styles.scoreLabel}>points</div>
-          </div>
-        </div>
 
-        {/* Progress */}
-        <div style={styles.progressSection}>
-          <div style={styles.description}>
-            <div style={styles.descriptionText}>
-              Great start! You have a solid foundation to build<br />
-              upon. Let's create a personalized plan to reach<br />
-              your career goals.
+          {/* Progress */}
+          <div style={styles.progressSection}>
+            <div style={styles.description}>
+              <div style={styles.descriptionText}>
+                {getScoreDescription(score).split('\n').map((line, i) => (
+                  <span key={i}>
+                    {line}
+                    {i < getScoreDescription(score).split('\n').length - 1 && <br />}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div style={styles.progressBar}>
+              <div style={{ ...styles.progressFill, width: `${score}%` }} />
+            </div>
+            <div style={styles.progressLabels}>
+              <div style={styles.progressLabel}>
+                <div style={styles.progressLabelText}>0</div>
+              </div>
+              <div style={styles.progressLabel}>
+                <div style={styles.progressLabelText}>100</div>
+              </div>
             </div>
           </div>
-          <div style={styles.progressBar}>
-            <div style={{ ...styles.progressFill, width: `${score}%` }} />
-          </div>
-          <div style={styles.progressLabels}>
-            <div style={styles.progressLabel}>
-              <div style={styles.progressLabelText}>0</div>
-            </div>
-            <div style={styles.progressLabel}>
-              <div style={styles.progressLabelText}>100</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Footer */}
-        <div style={styles.footer}>
-          <button style={styles.button} onClick={() => navigate("/roadmap")}>
-            <div style={styles.buttonText}>View my roadmap</div>
-          </button>
-          <div style={styles.footerHint}>
-            <div style={styles.footerHintText}>Your detailed report and next steps are ready.</div>
+          {/* Footer */}
+          <div style={styles.footer}>
+            <button style={styles.button} onClick={() => navigate("/roadmap")}>
+              <div style={styles.buttonText}>View my roadmap</div>
+            </button>
+            <div style={styles.footerHint}>
+              <div style={styles.footerHintText}>Your detailed report and next steps are ready.</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
