@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Header from "../components/Header";
+import Header2 from "../components/Header2";
 
 // Styles
 const styles = {
@@ -103,7 +103,7 @@ export default function Next() {
 
   return (
     <div style={styles.container}>
-      <Header />
+      <Header2 />
 
       {/* Step Progress */}
       <div style={styles.stepProgress}>

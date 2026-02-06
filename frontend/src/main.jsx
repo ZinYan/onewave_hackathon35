@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Next from "./pages/Next";
 import Score from "./pages/Score";
+import Loading from "./pages/Loading";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/next" element={<Next />} />
         <Route path="/score" element={<Score />} />
+        <Route path="/loading" element={<Loading />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

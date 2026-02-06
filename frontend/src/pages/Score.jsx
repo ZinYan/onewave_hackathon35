@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+import Header2 from "../components/Header2";
 
 // Styles
 const styles = {
@@ -239,7 +239,7 @@ export default function Score() {
 
   return (
     <div style={styles.page}>
-      <Header />
+      <Header2 />
       <div style={styles.container}>
         <div style={styles.card}>
         {/* Header */}
