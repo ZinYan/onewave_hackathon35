@@ -10,10 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env files for configuration.
+load_dotenv(BASE_DIR / ".env")
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -128,3 +135,35 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # React  기본 포트
 ]
+
+
+def _to_bool(value: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _to_float(value: str, default: float) -> float:
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+
+
+ONBOARDING_DEV_MODE = _to_bool(os.getenv("ONBOARDING_DEV_MODE"), default=False)
+ONBOARDING_PROMPT_TEMPLATE = os.getenv("ONBOARDING_PROMPT_TEMPLATE", "")
+ONBOARDING_STUB_AI = _to_bool(os.getenv("ONBOARDING_STUB_AI"), default=False)
+
+ONBOARDING_PROMPT_REMINDER = os.getenv(
+    "ONBOARDING_PROMPT_REMINDER",
+    "5번째 질답 절차 이후 또는 조기 종료 시점에 final.<회사-직무> 형식으로 최종 추론을 명시해라.",
+)
+ONBOARDING_MAX_HISTORY = int(os.getenv("ONBOARDING_MAX_HISTORY", "8"))
+ONBOARDING_KEEP_RECENT = int(os.getenv("ONBOARDING_KEEP_RECENT", "4"))
+
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+GEMINI_TEMPERATURE = _to_float(os.getenv("GEMINI_TEMPERATURE"), default=0.4)
