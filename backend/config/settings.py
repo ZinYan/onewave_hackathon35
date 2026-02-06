@@ -9,23 +9,41 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv(BASE_DIR / ".env")
+load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-aea^lp$ebaxjl21&y8&&=gf!cot1^ua%h8zacto@(4n#lksvu6'
-
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+import os
+
+# DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
+#SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
+
+# ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173"
+)
+if "0.0.0.0" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("0.0.0.0")
+    ALLOWED_HOSTS.append("localhost")
 
 
 # Application definition
@@ -128,3 +146,83 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # React  기본 포트
 ]
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+def _to_bool(value: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _to_float(value: str, default: float) -> float:
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+
+
+ONBOARDING_DEV_MODE = _to_bool(os.getenv("ONBOARDING_DEV_MODE"), default=False)
+ONBOARDING_PROMPT_TEMPLATE = os.getenv("ONBOARDING_PROMPT_TEMPLATE", "")
+ONBOARDING_STUB_AI = _to_bool(os.getenv("ONBOARDING_STUB_AI"), default=False)
+
+ONBOARDING_PROMPT_REMINDER = os.getenv(
+    "ONBOARDING_PROMPT_REMINDER",
+    "5번째 질답 절차 이후 또는 조기 종료 시점에 final.<회사-직무> 형식으로 최종 추론을 명시해라.",
+)
+ONBOARDING_MAX_HISTORY = int(os.getenv("ONBOARDING_MAX_HISTORY", "8"))
+ONBOARDING_KEEP_RECENT = int(os.getenv("ONBOARDING_KEEP_RECENT", "4"))
+PROMPT_TALENT_MODEL = os.getenv("PROMPT_TALENT_MODEL", "")
+PROMPT_RESUME_SCORING = os.getenv("PROMPT_RESUME_SCORING", "")
+PROMPT_ROADMAP_GENERATION = os.getenv("PROMPT_ROADMAP_GENERATION", "")
+PROMPT_PROGRESS_EVAL = os.getenv(
+    "PROMPT_PROGRESS_EVAL",
+    "당신은 커리어 멘토로서 사용자의 진행 상황을 검토하고 개선 조언을 제공해라."
+)
+PROMPT_OPPORTUNITY_EVAL = os.getenv(
+    "PROMPT_OPPORTUNITY_EVAL",
+    "당신은 커리어 코치로서 신규 기회가 사용자 목표에 얼마나 맞는지 평가한다."
+)
+PROMPT_RECOMMENDATION_PRIORITIZATION = os.getenv(
+    "PROMPT_RECOMMENDATION_PRIORITIZATION",
+    (
+        "사용자 목표와 일정 상태를 고려해 추천 기회 우선순위를 재조정한다. "
+        "JSON 배열 형태로 match_id와 priority(1이 가장 높음), confidence(0-1)를 반환해라."
+    ),
+)
+
+OPPORTUNITY_JOBKOREA_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_JOBKOREA_KEYWORDS", "데이터,AI"))
+OPPORTUNITY_DATAPORTAL_KEYWORDS = _to_list(os.getenv("OPPORTUNITY_DATAPORTAL_KEYWORDS", "공모전"))
+OPPORTUNITY_MAX_ITEMS_PER_SOURCE = int(os.getenv("OPPORTUNITY_MAX_ITEMS_PER_SOURCE", "5"))
+OPPORTUNITY_RECENT_DAYS = int(os.getenv("OPPORTUNITY_RECENT_DAYS", "14"))
+OPPORTUNITY_MIN_SCORE = float(os.getenv("OPPORTUNITY_MIN_SCORE", "40"))
+OPPORTUNITY_DEFAULT_DURATION_WEEKS = _to_float(os.getenv("OPPORTUNITY_DEFAULT_DURATION_WEEKS"), default=2.0)
+OPPORTUNITY_SCHEDULER_ENABLED = _to_bool(os.getenv("OPPORTUNITY_SCHEDULER_ENABLED"), default=False)
+OPPORTUNITY_SCHEDULER_INTERVAL_MINUTES = int(os.getenv("OPPORTUNITY_SCHEDULER_INTERVAL_MINUTES", "720"))
+
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
+GEMINI_TEMPERATURE = _to_float(os.getenv("GEMINI_TEMPERATURE"), default=0.4)
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
