@@ -10,17 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from pathlib import Path
-
-from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Load environment variables from .env files for configuration.
-load_dotenv(BASE_DIR / ".env")
-load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -33,6 +26,20 @@ SECRET_KEY = 'django-insecure-aea^lp$ebaxjl21&y8&&=gf!cot1^ua%h8zacto@(4n#lksvu6
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+import os
+
+DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
+
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173"
+).split(",")
+if "0.0.0.0" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("0.0.0.0")
 
 
 # Application definition
@@ -47,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
+    "users.apps.UsersConfig",
 ]
 
 MIDDLEWARE = [
@@ -125,7 +133,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -136,41 +145,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # React  기본 포트
 ]
 
-
-def _to_bool(value: str, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _to_float(value: str, default: float) -> float:
-    if value is None:
-        return default
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-
-
-ONBOARDING_DEV_MODE = _to_bool(os.getenv("ONBOARDING_DEV_MODE"), default=False)
-ONBOARDING_PROMPT_TEMPLATE = os.getenv("ONBOARDING_PROMPT_TEMPLATE", "")
-ONBOARDING_STUB_AI = _to_bool(os.getenv("ONBOARDING_STUB_AI"), default=False)
-
-ONBOARDING_PROMPT_REMINDER = os.getenv(
-    "ONBOARDING_PROMPT_REMINDER",
-    "5번째 질답 절차 이후 또는 조기 종료 시점에 final.<회사-직무> 형식으로 최종 추론을 명시해라.",
-)
-ONBOARDING_MAX_HISTORY = int(os.getenv("ONBOARDING_MAX_HISTORY", "8"))
-ONBOARDING_KEEP_RECENT = int(os.getenv("ONBOARDING_KEEP_RECENT", "4"))
-PROMPT_TALENT_MODEL = os.getenv("PROMPT_TALENT_MODEL", "")
-PROMPT_RESUME_SCORING = os.getenv("PROMPT_RESUME_SCORING", "")
-PROMPT_ROADMAP_GENERATION = os.getenv("PROMPT_ROADMAP_GENERATION", "")
-PROMPT_PROGRESS_EVAL = os.getenv(
-    "PROMPT_PROGRESS_EVAL",
-    "당신은 커리어 멘토로서 사용자의 진행 상황을 검토하고 개선 조언을 제공해라."
-)
-
-GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash")
-GEMINI_TEMPERATURE = _to_float(os.getenv("GEMINI_TEMPERATURE"), default=0.4)
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
