@@ -14,6 +14,9 @@ class OnboardingEvent(models.Model):
     final_role = models.CharField(max_length=255, blank=True, default="")
     history = models.JSONField(default=list, blank=True)
     summary = models.TextField(blank=True, default="")
+    score_one_result = models.TextField(blank=True, default="")
+    score_two_result = models.TextField(blank=True, default="")
+    roadmap_result = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -45,3 +48,81 @@ class OnboardingMessage(models.Model):
 
     def __str__(self):
         return f"{self.event_id}:{self.role}"
+
+
+class RoadmapPlan(models.Model):
+    event = models.ForeignKey(
+        OnboardingEvent,
+        on_delete=models.CASCADE,
+        related_name="roadmap_plans",
+    )
+    version = models.PositiveIntegerField()
+    raw_text = models.TextField()
+    title = models.CharField(max_length=255, blank=True, default="")
+    total_months = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("event", "version")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"RoadmapPlan(event={self.event_id}, v={self.version})"
+
+
+class RoadmapItem(models.Model):
+    plan = models.ForeignKey(
+        RoadmapPlan,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    priority = models.PositiveIntegerField(default=0)
+    title = models.CharField(max_length=255)
+    duration_weeks = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    importance_score = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    category = models.CharField(max_length=255, blank=True, default="")
+    detail_text = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["priority", "id"]
+
+    def __str__(self):
+        return f"RoadmapItem(plan={self.plan_id}, p={self.priority})"
+
+
+class RoadmapProgressEntry(models.Model):
+    STATUS_CHOICES = [
+        ("not_started", "Not Started"),
+        ("in_progress", "In Progress"),
+        ("blocked", "Blocked"),
+        ("done", "Done"),
+    ]
+
+    item = models.ForeignKey(
+        RoadmapItem,
+        on_delete=models.CASCADE,
+        related_name="progress_entries",
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="not_started")
+    percent_complete = models.PositiveIntegerField(default=0)
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class RoadmapJournalEntry(models.Model):
+    item = models.ForeignKey(
+        RoadmapItem,
+        on_delete=models.CASCADE,
+        related_name="journal_entries",
+    )
+    user_note = models.TextField()
+    ai_evaluation = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
